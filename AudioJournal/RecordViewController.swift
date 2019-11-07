@@ -60,22 +60,24 @@ class RecordViewController: UIViewController {
         message.addTextField { textfield in
             textfield.placeholder = "stuff"
         }
+         guard let text = message.textFields?.first?.text else {
+             print("no text available"); return }
+
+         print("Sending an HTTP post request to https://4f1d66fb.ngrok.io")
+         let content = Content(message: text)
+         
+         let postRequest = APIRequest(endpoint: "messages")
+         
+         postRequest.save(content, completion: { result in
+             switch result {
+             case .success(let content):
+                 print("The following message has sent: \(content.message)")
+             case .failure(let error):
+                 print("An error has occured \(error)")
+             }
+         })
         message.addAction(UIAlertAction(title: "cancel", style: .default, handler: { action in
-            guard let text = message.textFields?.first?.text else {
-                print("no text available"); return }
             
-            let message = Content(message: text)
-            
-            let postRequest = APIRequest(endpoint: "messages")
-            
-            postRequest.save(message, completion: { result in
-                switch result {
-                case .success(let message):
-                    print("The following message has sent: \(message.message)")
-                case .failure(let error):
-                    print("An error has occured \(error)")
-                }
-            })
         }))
     }
     

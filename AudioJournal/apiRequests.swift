@@ -14,6 +14,28 @@ enum APIError: Error {
     case encodingProblem
 }
 
+extension Dictionary {
+    func percentEscaped() -> String {
+        return map { (key, value) in
+            let escapedKey = "\(key)".addingPercentEncoding(withAllowedCharacters: .urlQueryValueAllowed) ?? ""
+            let escapedValue = "\(value)".addingPercentEncoding(withAllowedCharacters: .urlQueryValueAllowed) ?? ""
+            return escapedKey + "=" + escapedValue
+        }
+        .joined(separator: "&")
+    }
+}
+
+extension CharacterSet {
+    static let urlQueryValueAllowed: CharacterSet = {
+        let generalDelimitersToEncode = ":#[]@" // does not include "?" or "/" due to RFC 3986 - Section 3.4
+        let subDelimitersToEncode = "!$&'()*+,;="
+
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: "\(generalDelimitersToEncode)\(subDelimitersToEncode)")
+        return allowed
+    }()
+}
+
 struct APIRequest {
     let resourceURL: URL
     init(endpoint: String) {
@@ -24,27 +46,40 @@ struct APIRequest {
     
     func save (_ messageToSave: Content, completion: @escaping(Result<Content, APIError>) -> Void) {
         do {
-        var urlRequest = URLRequest(url: resourceURL)
-            urlRequest.httpMethod = "POST"
-            urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
-            urlRequest.httpBody = try JSONEncoder().encode(messageToSave)
-            
-            let dataTask = URLSession.shared.dataTask(with: urlRequest) { data, response, _ in
-                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let jsonData = data else {
-                    completion(.failure(.responseProblem))
+            let url = URL(string: "https://4f1d66fb.ngrok.io")!
+            var request = URLRequest(url: url)
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            request.httpMethod = "POST"
+            let parameters: [String: Any] = [
+                "id": 13,
+                "name": messageToSave.message,
+                "location": "",
+                "transcript": "Hello, how are you doing today. I'm okay doctor Phins, but my eye has been pretty swollen for the past few days. My pupil has been dialated and I have multiple red streaks. I don't think this is necessarily an allergy because I've never been diagnosed with any. Hmm okay let me take a look at it more closely. I think it could possibly be Blepharitis or pink eye. Have you had any fever recently or been around others who have? Nope."
+            ]
+            request.httpBody = parameters.percentEscaped().data(using: .utf8)
+
+            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                guard let data = data,
+                    let response = response as? HTTPURLResponse,
+                    error == nil else {                                              // check for fundamental networking error
+                    print("error", error ?? "Unknown error")
                     return
                 }
-                
-                do {
-                    let messageData = try JSONDecoder().decode(Content.self, from: jsonData) 
-                    completion(.success(messageData))
-                } catch {
-                    completion(.failure(.decodingProblem))
+
+                guard (200 ... 299) ~= response.statusCode else {                    // check for http errors
+                    print("statusCode should be 2xx, but is \(response.statusCode)")
+                    print("response = \(response)")
+                    return
                 }
+
+                let responseString = String(data: data, encoding: .utf8)
+                print("responseString = \(responseString)")
             }
-            dataTask.resume()
+
+        task.resume()
         } catch {
             completion(.failure(.encodingProblem))
         }
     }
 }
+
