@@ -15,3 +15,6 @@ Audio Journal lets you record or upload audio, and then automatically transcribe
 * We built an API that puts the audio and transcript in a database, and extracts keywords and a summary using natural language processing APIs.
 We built a dashboard that lets users browse all their audio files, transcripts, keywords, summaries, timestamps, location, and more!
 * To show an example of Audio Journal in action, we built a map of disease diagnoses from hypothetical audio recordings of patients' medical appointments. This can help public health stakeholders prevent, predict, and respond to disease outbreaks.
+
+Submitted at YHack 2019 @ Yale University
+Full code repo at [github.com/katavie/audiojournal-backend](https://github.com/katavie/audiojournal-backend)
